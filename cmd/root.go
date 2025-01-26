@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/khulnasoft/packages-registry/logger"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
-	"github.com/khulnasoft/packages-registry/logger"
 )
 
 var (

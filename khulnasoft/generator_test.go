@@ -6,9 +6,9 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/khulnasoft/packages-registry/config"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
-	"github.com/khulnasoft/packages-registry/config"
 )
 
 type testImport struct {

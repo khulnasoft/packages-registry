@@ -5,8 +5,8 @@ package config
 
 import (
 	"github.com/go-playground/validator/v10"
-	"github.com/spf13/viper"
 	"github.com/khulnasoft/packages-registry/logger"
+	"github.com/spf13/viper"
 )
 
 // Load will load the configuration yaml file into Configuration. It will also run several

@@ -1,0 +1,12 @@
+child_pipeline.yml
+testdata/output/*.yml
+coverage.out
+coverage.html
+coverage.txt
+coverage.xml
+cover.out
+dist/
+gl-code-quality-report.json
+junit.xml
+.DS_Store
+*/.DS_Store

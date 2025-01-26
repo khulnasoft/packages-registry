@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/spf13/cobra"
 	"github.com/khulnasoft/packages-registry/config"
 	"github.com/khulnasoft/packages-registry/khulnasoft"
 	"github.com/khulnasoft/packages-registry/logger"
+	"github.com/spf13/cobra"
 )
 
 // generateCmd represents the generate command

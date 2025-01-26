@@ -1,0 +1,16 @@
+pkgs_importer_generate:
+  image: curlimages/curl:7.87.0
+  script:
+    - curl -L https://khulnasoft.com/api/v4/projects/42763230/releases/permalink/latest/downloads/pkgs_importer_Linux_x86_64.tar.gz | tar xvz
+    - ./pkgs_importer --version
+    - ./pkgs_importer generate
+  artifacts:
+    paths:
+      - child_pipeline.yml
+
+pkgs_importer_execute:
+  needs: ['pkgs_importer_generate']
+  trigger:
+    include:
+      - artifact: child_pipeline.yml
+        job: pkgs_importer_generate

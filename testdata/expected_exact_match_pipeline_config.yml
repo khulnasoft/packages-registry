@@ -1,0 +1,287 @@
+stages:
+    - import1
+    - import2
+    - import3
+    - import4
+    - import5
+    - import6
+    - import7
+    - import8
+    - import9
+.import1:scripts:
+    image: node:alpine
+    stage: import1
+    needs: []
+    script:
+        - echo "registry = https://source1.test/npm" >> .npmrc
+        - mkdir _pkg
+        - npm pack --pack-destination="_pkg" $PACKAGE_NAME@$PACKAGE_VERSION
+        - rm -f .npmrc
+        - cd _pkg
+        - ls *.tgz | xargs tar zxvf
+        - cd package
+        - npm pkg delete publishConfig
+        - npm pack
+        - echo "registry = https://destination.test/npm" >> .npmrc
+        - echo "//destination.test/npm:_authToken = 1234567890" >> .npmrc
+        - ls *.tgz | xargs npm publish
+.import2:scripts:
+    image: node:alpine
+    stage: import2
+    needs: []
+    script:
+        - echo "registry = https://source2.test/npm" >> .npmrc
+        - echo "//source2.test/npm:_auth = 12345" >> .npmrc
+        - echo "always-auth = 1" >> .npmrc
+        - echo "email = test@sandbox.org" >> .npmrc
+        - mkdir _pkg
+        - npm pack --pack-destination="_pkg" $PACKAGE_NAME@$PACKAGE_VERSION
+        - rm -f .npmrc
+        - cd _pkg
+        - ls *.tgz | xargs tar zxvf
+        - cd package
+        - npm pkg delete publishConfig
+        - npm pack
+        - echo "registry = https://destination.test/npm" >> .npmrc
+        - echo "//destination.test/npm:_authToken = 1234567890" >> .npmrc
+        - ls *.tgz | xargs npm publish
+.import3:scripts:
+    image: node:current-alpine3.16
+    stage: import3
+    needs: []
+    script:
+        - echo "registry = https://source3.test/npm" >> .npmrc
+        - mkdir _pkg
+        - npm pack --pack-destination="_pkg" $PACKAGE_NAME@$PACKAGE_VERSION
+        - rm -f .npmrc
+        - cd _pkg
+        - ls *.tgz | xargs tar zxvf
+        - cd package
+        - npm pkg delete publishConfig
+        - npm pack
+        - echo "registry = https://destination.test/npm" >> .npmrc
+        - echo "//destination.test/npm:_authToken = 1234567890" >> .npmrc
+        - ls *.tgz | xargs npm publish
+.import4:scripts:
+    image: mono:6
+    stage: import4
+    needs: []
+    script:
+        - nuget sources Remove -Name nuget.org
+        - nuget sources Add -Name pkgs_importer_source -Source "https://source4.test/nuget"
+        - mkdir _pkg
+        - nuget install $PACKAGE_NAME -Version $PACKAGE_VERSION -NoCache -DirectDownload -NonInteractive -DependencyVersion Ignore -Source pkgs_importer_source -OutputDirectory _pkg
+        - nuget sources Remove -Name pkgs_importer_source
+        - cd _pkg && cd $(ls -d */|head -n 1)
+        - nuget sources Add -Name pkgs_importer_destination -Source "https://destination.test/nuget" -password "1234567890" -username user.test
+        - nuget push $(ls *.nupkg | head -n 1) -Source pkgs_importer_destination
+.import5:scripts:
+    image: mono:latest
+    stage: import5
+    needs: []
+    script:
+        - nuget sources Remove -Name nuget.org
+        - nuget sources Add -Name pkgs_importer_source -Source "https://source5.test/nuget" -password "1234567890" -username user_source
+        - mkdir _pkg
+        - nuget install $PACKAGE_NAME -Version $PACKAGE_VERSION -NoCache -DirectDownload -NonInteractive -DependencyVersion Ignore -Source pkgs_importer_source -OutputDirectory _pkg
+        - nuget sources Remove -Name pkgs_importer_source
+        - cd _pkg && cd $(ls -d */|head -n 1)
+        - nuget sources Add -Name pkgs_importer_destination -Source "https://destination.test/nuget" -password "1234567890" -username user.test
+        - nuget push $(ls *.nupkg | head -n 1) -Source pkgs_importer_destination
+.import6:scripts:
+    image: maven:eclipse-temurin
+    stage: import6
+    needs: []
+    script:
+        - mvn dependency:get -Dmaven.repo.local=deps -Dtransitive=false -Dartifact=$PACKAGE_NAME:$PACKAGE_VERSION -DremoteRepositories=pkgs_importer_source::::https://source6.test/maven
+        - pkg_dir=$(echo $PACKAGE_NAME | cut -d ":" -f 1 | tr "." "/")/$(echo $PACKAGE_NAME | cut -d ":" -f 2)/$(echo $PACKAGE_VERSION | cut -d ":" -f 1)
+        - cd $(find deps -path "*/$pkg_dir")
+        - echo "<settings><servers><server><id>pkgs_importer_destination</id><username>user.test</username><password>1234567890</password></server></servers></settings>" > settings.xml
+        - mvn deploy:deploy-file -Durl=https://destination.test/maven -DrepositoryId=pkgs_importer_destination -Dfile="$(find . -type f -name "*.$PACKAGE_PACKAGING")" -Dpackaging="$PACKAGE_PACKAGING" -DpomFile=$(ls *.pom | head -n 1) -s settings.xml
+.import7:scripts:
+    image: maven:latest
+    stage: import7
+    needs: []
+    script:
+        - echo "<settings><servers><server><id>pkgs_importer_source</id><configuration><httpHeaders><property><name>Private-Token</name><value>1234567890</value></property></httpHeaders></configuration></server></servers></settings>" > settings.xml
+        - mvn dependency:get -Dmaven.repo.local=deps -Dtransitive=false -Dartifact=$PACKAGE_NAME:$PACKAGE_VERSION -DremoteRepositories=pkgs_importer_source::::https://source6.test/maven -s settings.xml
+        - pkg_dir=$(echo $PACKAGE_NAME | cut -d ":" -f 1 | tr "." "/")/$(echo $PACKAGE_NAME | cut -d ":" -f 2)/$(echo $PACKAGE_VERSION | cut -d ":" -f 1)
+        - cd $(find deps -path "*/$pkg_dir")
+        - echo "<settings><servers><server><id>pkgs_importer_destination</id><username>user.test</username><password>1234567890</password></server></servers></settings>" > settings.xml
+        - mvn deploy:deploy-file -Durl=https://destination.test/maven -DrepositoryId=pkgs_importer_destination -Dfile="$(find . -type f -name "*.$PACKAGE_PACKAGING")" -Dpackaging="$PACKAGE_PACKAGING" -DpomFile=$(ls *.pom | head -n 1) -s settings.xml
+.import8:scripts:
+    image: python:alpine
+    stage: import8
+    needs: []
+    script:
+        - python -m pip download "$PACKAGE_NAME==$PACKAGE_VERSION" -d pkgs --no-cache-dir --no-deps -i https://user.source:1234567890@source8.test/pypi
+        - cd pkgs
+        - python -m pip install twine
+        - python -m twine upload --repository-url https://destination.test/pypi -u "user.destination" -p "1234567890" ./*
+.import9:scripts:
+    image: pypi:latest
+    stage: import9
+    needs: []
+    script:
+        - python -m pip download "$PACKAGE_NAME==$PACKAGE_VERSION" -d pkgs --no-cache-dir --no-deps -i https://user.source:1234567890@source9.test/pypi
+        - cd pkgs
+        - python -m pip install twine
+        - python -m twine upload --repository-url https://destination.test/pypi -u "user.destination" -p "1234567890" ./*
+import1:@import1/first:2.3.4:
+    extends: .import1:scripts
+    variables:
+        PACKAGE_NAME: '@import1/first'
+        PACKAGE_VERSION: 2.3.4
+import1:first:1.3.7:
+    extends: .import1:scripts
+    variables:
+        PACKAGE_NAME: first
+        PACKAGE_VERSION: 1.3.7
+import1:first:1.3.8:
+    extends: .import1:scripts
+    variables:
+        PACKAGE_NAME: first
+        PACKAGE_VERSION: 1.3.8
+import1:same_Package:5.6.8:
+    extends: .import1:scripts
+    variables:
+        PACKAGE_NAME: same_Package
+        PACKAGE_VERSION: 5.6.8
+import2:@import2/second:2.3.4:
+    extends: .import2:scripts
+    variables:
+        PACKAGE_NAME: '@import2/second'
+        PACKAGE_VERSION: 2.3.4
+import2:same_Package:5.6.8:
+    extends: .import2:scripts
+    variables:
+        PACKAGE_NAME: same_Package
+        PACKAGE_VERSION: 5.6.8
+import2:second:5.4.6:
+    extends: .import2:scripts
+    variables:
+        PACKAGE_NAME: second
+        PACKAGE_VERSION: 5.4.6
+import3:@test/package2:3.2.1:
+    extends: .import3:scripts
+    variables:
+        PACKAGE_NAME: '@test/package2'
+        PACKAGE_VERSION: 3.2.1
+import3:package1:1.2.3:
+    extends: .import3:scripts
+    variables:
+        PACKAGE_NAME: package1
+        PACKAGE_VERSION: 1.2.3
+import3:package3:2.3.5:
+    extends: .import3:scripts
+    variables:
+        PACKAGE_NAME: package3
+        PACKAGE_VERSION: 2.3.5
+import4:MyCompany.MySecondPackage:1.4.7:
+    extends: .import4:scripts
+    variables:
+        PACKAGE_NAME: MyCompany.MySecondPackage
+        PACKAGE_VERSION: 1.4.7
+import4:MyCompany.MySecondPackage:1.4.9:
+    extends: .import4:scripts
+    variables:
+        PACKAGE_NAME: MyCompany.MySecondPackage
+        PACKAGE_VERSION: 1.4.9
+import4:MyFirstPackage:1.2.3:
+    extends: .import4:scripts
+    variables:
+        PACKAGE_NAME: MyFirstPackage
+        PACKAGE_VERSION: 1.2.3
+import5:MyCompany.MyFourthPackage:5.3.7:
+    extends: .import5:scripts
+    variables:
+        PACKAGE_NAME: MyCompany.MyFourthPackage
+        PACKAGE_VERSION: 5.3.7
+import5:MyCompany.MyFourthPackage:5.3.8:
+    extends: .import5:scripts
+    variables:
+        PACKAGE_NAME: MyCompany.MyFourthPackage
+        PACKAGE_VERSION: 5.3.8
+import5:MyThirdPackage:4.6.8:
+    extends: .import5:scripts
+    variables:
+        PACKAGE_NAME: MyThirdPackage
+        PACKAGE_VERSION: 4.6.8
+import6:this.is.company.a:util-package:5.2.3:
+    extends: .import6:scripts
+    variables:
+        PACKAGE_NAME: this.is.company.a:util-package
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 5.2.3
+import6:this.is.company.b:Numbers-Package:5.4.7:
+    extends: .import6:scripts
+    variables:
+        PACKAGE_NAME: this.is.company.b:Numbers-Package
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 5.4.7
+import6:this.is.company.b:Numbers-Package:6.0.9:
+    extends: .import6:scripts
+    variables:
+        PACKAGE_NAME: this.is.company.b:Numbers-Package
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 6.0.9
+import6:this.is.company.c:Numeric-Package:4.3.2:aar:
+    extends: .import6:scripts
+    variables:
+        PACKAGE_NAME: this.is.company.c:Numeric-Package
+        PACKAGE_PACKAGING: aar
+        PACKAGE_VERSION: 4.3.2:aar
+import6:this.is.company.c:Numeric-Package:4.3.2:pom:
+    extends: .import6:scripts
+    variables:
+        PACKAGE_NAME: this.is.company.c:Numeric-Package
+        PACKAGE_PACKAGING: pom
+        PACKAGE_VERSION: 4.3.2:pom
+import7:my.company:package1:4.6.8:
+    extends: .import7:scripts
+    variables:
+        PACKAGE_NAME: my.company:package1
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 4.6.8
+import7:the.other.company:Package2:5.3.7:
+    extends: .import7:scripts
+    variables:
+        PACKAGE_NAME: the.other.company:Package2
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 5.3.7
+import7:the.other.company:Package2:5.3.8:
+    extends: .import7:scripts
+    variables:
+        PACKAGE_NAME: the.other.company:Package2
+        PACKAGE_PACKAGING: jar
+        PACKAGE_VERSION: 5.3.8
+import8:PyPIFirstPackage:1.2.3:
+    extends: .import8:scripts
+    variables:
+        PACKAGE_NAME: PyPIFirstPackage
+        PACKAGE_VERSION: 1.2.3
+import8:PyPISecondPackage:5.3.3:
+    extends: .import8:scripts
+    variables:
+        PACKAGE_NAME: PyPISecondPackage
+        PACKAGE_VERSION: 5.3.3
+import8:PyPISecondPackage:5.3.4:
+    extends: .import8:scripts
+    variables:
+        PACKAGE_NAME: PyPISecondPackage
+        PACKAGE_VERSION: 5.3.4
+import9:PyPIMyFourthPackage:5.3.7:
+    extends: .import9:scripts
+    variables:
+        PACKAGE_NAME: PyPIMyFourthPackage
+        PACKAGE_VERSION: 5.3.7
+import9:PyPIMyFourthPackage:5.3.8:
+    extends: .import9:scripts
+    variables:
+        PACKAGE_NAME: PyPIMyFourthPackage
+        PACKAGE_VERSION: 5.3.8
+import9:PyPIMyThirdPackage:4.6.8:
+    extends: .import9:scripts
+    variables:
+        PACKAGE_NAME: PyPIMyThirdPackage
+        PACKAGE_VERSION: 4.6.8

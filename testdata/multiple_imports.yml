@@ -1,0 +1,47 @@
+import1:
+  type: npm
+  source:
+    url: https://source1.test/npm
+    credentials:
+      token: 1234567890
+  destination: &destination
+    url: https://destination.test/npm
+    credentials:
+      token: 1234567890
+  packages:
+    "first":
+      - 1.3.7
+      - 1.3.8
+    "@import1/first": 2.0.0
+import2:
+  type: npm
+  source:
+    url: https://source2.org/source
+    credentials:
+      token: 1234567890
+  destination: *destination
+  packages:
+    "second": 1.2.3
+    "@scope/second": 1.2.3
+import3:
+  type: npm
+  source:
+    url: https://source3.org/source
+    credentials:
+      token: 1234567890
+  destination: *destination
+  packages:
+    "third": 1.2.3
+    "@import3/third": 1.2.3
+import4:
+  type: nuget
+  source:
+    url: https://source3.org/source
+    credentials:
+      token: 1234567890
+      username: user
+  destination:
+    url: https://destination.test/nuget
+    credentials:
+      token: 1234567890
+      username: user
