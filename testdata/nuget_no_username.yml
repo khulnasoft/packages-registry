@@ -1,0 +1,13 @@
+import1:
+  type: nuget
+  source:
+    url: https://source.test/nuget
+  destination:
+    url: https://destination.test/nuget
+    credentials:
+      token: 12345
+  packages:
+    "MyFirstPackage":
+      - 1.3.7
+      - 1.3.8
+    "MyCompany.MySecondPackage": 2.3.4
