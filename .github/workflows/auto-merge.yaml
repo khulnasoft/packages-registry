@@ -22,7 +22,7 @@ jobs:
         with:
           token: ${{ secrets.DEPENDABOT_PAT }}
 
-      - uses: khulnasoft-lab/dependabot-auto-merge@v1.0.2
+      - uses: khulnasoft-lab/dependabot-auto-merge@v2
         with:
           github-token: ${{ secrets.ORG_REPO_TOKEN }}
           target: all
